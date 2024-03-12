@@ -1,0 +1,157 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                 String    @id @default(auto()) @map("_id") @db.ObjectId
+  firstName          String
+  lastName           String
+  password           String
+  email              String
+  role               String    @default("CUSTOMER")
+  mobile             String?
+  createdAt          DateTime  @default(now())
+  addresses          Address[] @relation("userToAddress")
+  orders Order[]
+  paymentInformation PaymentDetails[]  @relation("userToPayment")
+  cart               Cart[]
+  ratings            Rating[]  @relation("UserToRating")
+  reviews            Review[]  @relation("UserToReview")
+}
+
+model Address {
+  id            String @id @default(auto()) @map("_id") @db.ObjectId
+  firstName     String
+  lastName      String
+  streetAddress String
+  city          String
+  state         String
+  zipCode       String
+  mobile        String @default("000-000-0000")
+  userId        String
+  user          User   @relation("userToAddress", fields: [userId], references: [id])
+  orders  Order[]
+}
+
+model Rating {
+  id        String  @id @default(auto()) @map("_id") @db.ObjectId
+  rating    String
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+  userId    String
+  user      User    @relation("UserToRating", fields: [userId], references: [id])
+}
+
+model Review {
+  id        String  @id @default(auto()) @map("_id") @db.ObjectId
+  review    String
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+  userId    String
+  user      User    @relation("UserToReview", fields: [userId], references: [id])
+}
+
+model Product {
+  id              String   @id @default(auto()) @map("_id") @db.ObjectId
+  title           String
+  description     String
+  price           Int
+  discountedPrice Int?
+  discountPersent Int?
+  quantity        Int
+  brand           String
+  color           String
+  sizes           Size[]
+  imageUrl        String
+  ratings         Rating[]
+  reviews         Review[]
+  cartId          String
+  cartItem        CartItem @relation("cartToProduct", fields: [cartId], references: [id])
+  numRatings      Int      @default(0)
+  categoryId      String
+  category        Category @relation("CategoryToProduct", fields: [categoryId], references: [id])
+  createdAt       DateTime @default(now())
+}
+
+model Size {
+  id        String  @id @default(auto()) @map("_id") @db.ObjectId
+  name      String
+  quantity  Int
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+}
+
+model Category {
+  id       String    @id @default(auto()) @map("_id") @db.ObjectId
+  name     String
+  products Product[] @relation("CategoryToProduct")
+}
+
+model Cart {
+  id                   String     @id @default(auto()) @map("_id") @db.ObjectId
+  userId               String
+  user                 User       @relation(fields: [userId], references: [id])
+  cartItems            CartItem[] @relation("cartToCartItem")
+  totalPrice           Float      @default(0)
+  totalItem            Int        @default(0)
+  totalDiscountedPrice Float      @default(0)
+  discount             Float      @default(0)
+}
+
+model CartItem {
+  id                   String    @id @default(auto()) @map("_id") @db.ObjectId
+  productId            String
+  product              Product[] @relation("cartToProduct")
+  cartId               String
+  cart                 Cart      @relation("cartToCartItem", fields: [cartId], references: [id])
+  quantity             Int
+  discountedPrice      Float
+  totalDiscountedPrice Float
+}
+
+model Order {
+  id                  String    @id @default(auto()) @map("_id") @db.ObjectId
+  userId              String
+  user                User      @relation(fields: [userId], references: [id])
+  orderItems          OrderItem[]
+  orderDate           DateTime   
+  deliveryDate        DateTime?
+  shippingAddressId   String
+  shippingAddress     Address   @relation(fields: [shippingAddressId], references: [id])
+  paymentId        String
+  paymentDetails      PaymentDetails  @relation(fields: [paymentId],references: [id])
+  totalPrice          Int    
+  totalDiscountedPrice Int     
+  discount            Int    
+  orderStatus         String    
+  totalItem           Int       
+  createdAt           DateTime  @default(now())
+}
+
+model OrderItem {
+  id                   String    @id @default(auto()) @map("_id") @db.ObjectId
+  orderId              String
+  order                Order     @relation(fields: [orderId], references: [id])
+}
+
+model PaymentDetails {
+  id             String @id @default(auto()) @map("_id") @db.ObjectId
+  paymentMethod  String
+  transactionId  String
+  paymentId      String
+  paymentStatus  String
+  order          Order []
+  userId         String
+  user           User  @relation("userToPayment",fields: [userId],references: [id])
+}
